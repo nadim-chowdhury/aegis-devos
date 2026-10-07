@@ -1,0 +1,6 @@
+import { openDb, recordWorkerEvent, recordEvent, registerRun, finishRun, heartbeat } from './db.js';
+export async function runStarted(root, runId, taskId, attempt) { const db = await openDb(root); registerRun(db, { id: runId, taskId, attempt }); recordEvent(db, 'run.started', { attempt }, taskId, runId); db.close(); }
+export async function workerStarted(root, runId, taskId, workerId, model) { const db = await openDb(root); recordEvent(db, 'worker.started', { workerId, model }, taskId, runId); heartbeat(db, runId); db.close(); }
+export async function workerEvent(root, runId, taskId, workerId, event) { const db = await openDb(root); recordEvent(db, 'worker.stream', { workerId, event }, taskId, runId); heartbeat(db, runId); db.close(); }
+export async function workerFinished(root, runId, taskId, workerId, result) { const db = await openDb(root); recordWorkerEvent(db, workerId, result.success ? 'success' : 'failure', result); recordEvent(db, 'worker.finished', { workerId, ...result }, taskId, runId); heartbeat(db, runId); db.close(); }
+export async function runFinished(root, runId, status, taskId, payload = {}) { const db = await openDb(root); finishRun(db, runId, status); recordEvent(db, `run.${status}`, payload, taskId, runId); db.close(); }

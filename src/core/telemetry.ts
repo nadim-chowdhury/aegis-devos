@@ -1,0 +1,6 @@
+import {openDb,recordWorkerEvent,recordEvent,registerRun,finishRun,heartbeat} from './db.js';
+export async function runStarted(root:string,runId:string,taskId:string,attempt:number){const db=await openDb(root);registerRun(db,{id:runId,taskId,attempt});recordEvent(db,'run.started',{attempt},taskId,runId);db.close()}
+export async function workerStarted(root:string,runId:string,taskId:string,workerId:string,model:string){const db=await openDb(root);recordEvent(db,'worker.started',{workerId,model},taskId,runId);heartbeat(db,runId);db.close()}
+export async function workerEvent(root:string,runId:string,taskId:string,workerId:string,event:unknown){const db=await openDb(root);recordEvent(db,'worker.stream',{workerId,event},taskId,runId);heartbeat(db,runId);db.close()}
+export async function workerFinished(root:string,runId:string,taskId:string,workerId:string,result:any){const db=await openDb(root);recordWorkerEvent(db,workerId,result.success?'success':'failure',result);recordEvent(db,'worker.finished',{workerId,...result},taskId,runId);heartbeat(db,runId);db.close()}
+export async function runFinished(root:string,runId:string,status:string,taskId:string,payload:unknown={}){const db=await openDb(root);finishRun(db,runId,status);recordEvent(db,`run.${status}`,payload,taskId,runId);db.close()}
