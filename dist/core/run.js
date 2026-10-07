@@ -39,7 +39,7 @@ export async function runTask(project, taskId, options = {}) {
         }
         const context = await buildContext(root, task, config.defaults.max_context_chars);
         await writeText(path.join(dir, 'context.txt'), context);
-        await writeText(path.join(dir, 'context.manifest.json'), JSON.stringify({ version: '4.0.0', taskId, generatedAt: new Date().toISOString(), maxChars: config.defaults.max_context_chars, includes: ['canonical-ai-docs', 'engineering-memory', 'relevant-code'], memoryQuery: `${task.title} ${task.objective}` }, null, 2));
+        await writeText(path.join(dir, 'context.manifest.json'), JSON.stringify({ version: '7.1.0', runId, projectId: path.basename(root), taskId, taskVersion: task.version, taskRisk: task.risk || 'medium', generatedAt: new Date().toISOString(), maxChars: config.defaults.max_context_chars, includes: ['canonical-ai-docs', 'engineering-memory', 'code-graph', 'relevant-code', 'prior-handoff'], memoryQuery: `${task.title} ${task.objective}`, policyState: { requireCleanGit: config.defaults.require_clean_git, autoCommit: config.defaults.auto_commit, maxRecoveryAttempts: config.defaults.max_recovery_attempts } }, null, 2));
         const db0 = await openDb(root);
         const priorConversation = getConversation(db0, taskId);
         db0.close();
@@ -81,6 +81,9 @@ export async function runTask(project, taskId, options = {}) {
                 addEvidence(odb, { id: `worker-${runId}-${attempts}-${worker.id}`, taskId, runId, kind: role === 'reviewer' ? 'review' : role === 'security' ? 'security_review' : 'worker_execution', status: result.success ? 'pass' : 'fail', payload: { worker: worker.id, model: worker.model, role, durationMs: result.durationMs, errorType: result.errorType, turns: result.turns } });
                 odb.close();
                 await writeText(path.join(dir, `attempt-${attempts}-${worker.id}.json`), JSON.stringify({ ...result, role, worker: worker.id }, null, 2));
+                const handoff = { runId, taskId, attempt: attempts, role, workerId: worker.id, model: worker.model, success: result.success, timestamp: new Date().toISOString(), whatAttempted: `Role ${role} on ${taskId}`, whatChanged: result.success ? 'Executed phase successfully' : 'Execution failed', knownProblems: result.success ? [] : [result.output.slice(-400)], testsExecuted: role === 'tester', nextRecommendedAction: result.success ? 'Proceed to next lifecycle phase' : 'Reassign or recover' };
+                await writeText(path.join(dir, 'handoff.json'), JSON.stringify(handoff, null, 2));
+                await writeText(path.join(root, '.ai', 'CURRENT_HANDOFF.json'), JSON.stringify(handoff, null, 2));
                 if (result.success) {
                     success = true;
                     break;

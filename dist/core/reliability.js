@@ -154,9 +154,9 @@ export async function reliabilityStatus(projectRoot) {
 export async function reliabilityHistory(projectRoot) {
     const dir = path.join(projectRoot, '.aegis', 'reliability');
     try {
-        const names = (await import('node:fs/promises')).readdir(dir);
+        const names = await (await import('node:fs/promises')).readdir(dir);
         const reports = [];
-        for (const n of names.filter(x => x.endsWith('.json') && x !== 'latest.json').sort().reverse().slice(0, 50)) {
+        for (const n of names.filter((x) => x.endsWith('.json') && x !== 'latest.json').sort().reverse().slice(0, 50)) {
             try {
                 reports.push(JSON.parse(await readFile(path.join(dir, n), 'utf8')));
             }

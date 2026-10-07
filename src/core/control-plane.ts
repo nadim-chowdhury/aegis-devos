@@ -108,7 +108,7 @@ export async function controlLoopOnce(project:string,options:ControlLoopOptions=
   for(const t of bootstrapReady) emit(db,'TASK_READY',{reason:'control-plane-bootstrap',taskId:t.id},t.id,null);
   db.prepare('INSERT INTO event_consumers(consumer_id,last_sequence,updated_at) VALUES(?,?,?) ON CONFLICT(consumer_id) DO NOTHING').run(consumerId,0,now);
   const state=db.prepare('SELECT last_sequence FROM event_consumers WHERE consumer_id=?').get(consumerId) as {last_sequence:number};
-  const rows=db.prepare('SELECT * FROM event_stream WHERE sequence>? ORDER BY sequence ASC LIMIT ?').all(Number(state.last_sequence),limit) as EventRow[];
+  const rows=db.prepare('SELECT * FROM event_stream WHERE sequence>? ORDER BY sequence ASC LIMIT ?').all(Number(state.last_sequence),limit) as unknown as EventRow[];
   let last=Number(state.last_sequence),processed=0;
   for(const row of rows){
    try{

@@ -77,9 +77,9 @@ export async function runFactory(project:string,options:FactoryOptions={}){
   }
   if(state.status==='COMPLETED')state.finishedAt=new Date().toISOString();
   await persist(root,state);
-  const outdb=await openDb(root); outdb.prepare('UPDATE factory_runs SET status=?,phase=?,tasks_executed=?,replans=?,updated_at=?,finished_at=?,last_error=? WHERE id=?').run(state.status,state.phase,state.tasksExecuted,state.replans,state.updatedAt,state.finishedAt??null,state.lastError??null,id); recordEvent(outdb,`factory.${String(state.status).toLowerCase()}`,{factoryRunId:id,tasksExecuted:state.tasksExecuted,replans:state.replans,recoveries:state.recoveries}); outdb.close();
+  const outdb=await openDb(root); outdb.prepare('UPDATE factory_runs SET status=?,phase=?,tasks_executed=?,replans=?,updated_at=?,finished_at=?,last_error=? WHERE id=?').run(state.status,state.phase,state.tasksExecuted,state.replans,state.updatedAt,state.finishedAt??null,state.lastError??null,state.id); recordEvent(outdb,`factory.${String(state.status).toLowerCase()}`,{factoryRunId:state.id,tasksExecuted:state.tasksExecuted,replans:state.replans,recoveries:state.recoveries}); outdb.close();
   return state;
- }catch(e){state.status='FAILED';state.phase='FAILED';state.lastError=String(e);state.finishedAt=new Date().toISOString();await persist(root,state);const edb=await openDb(root);edb.prepare('UPDATE factory_runs SET status=?,phase=?,updated_at=?,finished_at=?,last_error=? WHERE id=?').run(state.status,state.phase,state.updatedAt,state.finishedAt,state.lastError,id);recordEvent(edb,'factory.failed',{factoryRunId:id,error:state.lastError});edb.close();throw e;}
+ }catch(e){state.status='FAILED';state.phase='FAILED';state.lastError=String(e);state.finishedAt=new Date().toISOString();await persist(root,state);const edb=await openDb(root);edb.prepare('UPDATE factory_runs SET status=?,phase=?,updated_at=?,finished_at=?,last_error=? WHERE id=?').run(state.status,state.phase,state.updatedAt,state.finishedAt,state.lastError,state.id);recordEvent(edb,'factory.failed',{factoryRunId:state.id,error:state.lastError});edb.close();throw e;}
 }
 
 export async function factoryHistory(project:string,limit=20){const db=await openDb(path.resolve(project));try{return db.prepare('SELECT * FROM factory_runs ORDER BY started_at DESC LIMIT ?').all(Math.max(1,Math.min(limit,100)))}finally{db.close()}}

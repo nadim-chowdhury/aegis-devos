@@ -31,12 +31,12 @@ export async function collaborateProject(root:string,taskId:string,options:Colla
     if(!result.success)continue; let parsed:any; try{parsed=extractJson(result.output)}catch{parsed={kind:'FINDING',content:result.output.slice(-2000),confidence:0.2};}
     const kind=COLLABORATION_KINDS.includes(parsed.kind)?parsed.kind:'FINDING'; const content=String(parsed.content||'').slice(0,6000); if(!content)continue;
     const msg={id:randomUUID(),sessionId,round,sequence:++sequence,agentRole:role,workerId:worker.id,model:worker.model,kind,content,confidence:typeof parsed.confidence==='number'?Math.max(0,Math.min(1,parsed.confidence)):undefined};
-    const d=await openDb(root); addCollaborationMessage(d,msg); addEvidence(d,{id:`COLLAB-EVIDENCE-${msg.id}`,taskId,kind:'collaboration_message',status:'info',payload:msg}); recordEvent(d,'collaboration.message',{sessionId,...msg},taskId); d.close(); transcript.push(`${role} ${kind}: ${content}`); sent++;
+    const d=await openDb(root); addCollaborationMessage(d,msg); addEvidence(d,{id:`COLLAB-EVIDENCE-${msg.id}`,taskId,kind:'collaboration_message',status:'info',payload:msg}); recordEvent(d,'collaboration.message',msg,taskId); d.close(); transcript.push(`${role} ${kind}: ${content}`); sent++;
    }
    if(sent>=maxMessages)break;
    // One bounded lead synthesis per round; the final decision is synthesized after the message budget or final round.
   }
-  const d=await openDb(root); const messages=collaborationStatus(d,sessionId)?.messages||[]; d.close();
+  const d=await openDb(root); const cstat=collaborationStatus(d,sessionId) as {session:any;messages:any[];decisions:any[]}|undefined; const messages=cstat?.messages||[]; d.close();
   const leadWorkers=await route(root,{...task,assigned_role:leadRole} as Task,config,leadRole); if(!leadWorkers.length)throw new Error('No lead worker available for collaboration synthesis.');
   const lead=leadWorkers[0]; const synthesisPrompt=`You are the lead ${leadRole} for Aegis. Synthesize this bounded collaboration into a safe decision.\nTASK: ${task.id} | ${task.title}\nRISK: ${task.risk||'medium'}\nMESSAGES:\n${messages.map((m:any)=>`[${m.agent_role}/${m.kind}] ${m.content}`).join('\n')}\n\nReturn ONLY JSON: {"decision":"PROCEED|REVISE|BLOCK|NEED_HUMAN","rationale":"...","conflicts":["..."],"evidence":["message ids or concrete evidence"],"confidence":0.0}`;
   const result=await runWorker({projectPath:root,model:lead.model,prompt:synthesisPrompt,timeoutMs:options.timeoutMs??config.defaults.run_timeout_ms,command:lead.command,provider:lead.provider},lead);

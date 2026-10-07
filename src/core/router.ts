@@ -32,6 +32,21 @@ function riskAllowed(w:Worker,task:Task,role:AgentRole){
  if(task.risk==='critical' && role!=='security' && role!=='reviewer' && role!=='architect') return false;
  return w.enabled!==false;
 }
+function accountAvailable(w:Worker,config:Config):boolean{
+ if(!config.provider_pool?.providers) return true;
+ const p=config.provider_pool.providers[w.provider];
+ if(p && p.enabled===false) return false;
+ if(p?.accounts && w.accountId){
+  const a=p.accounts.find(x=>x.id===w.accountId);
+  if(a){
+   if(a.enabled===false) return false;
+   const now=Date.now();
+   if(a.exhaustedUntil && new Date(a.exhaustedUntil).getTime()>now) return false;
+   if(a.cooldownUntil && new Date(a.cooldownUntil).getTime()>now) return false;
+  }
+ }
+ return true;
+}
 
 export async function routeDetailed(root:string,task:Task,config:Config,role:AgentRole):Promise<RouteDecision[]> {
  const health=await loadHealth(root); const db=await openDb(root);
@@ -39,7 +54,7 @@ export async function routeDetailed(root:string,task:Task,config:Config,role:Age
   const preferred=config.routing?.[role]?.preferred||[];
   const rows=db.prepare(`SELECT worker_id,model,role,task_type,domain,risk,status,duration_ms,created_at FROM task_outcomes`).all() as any[];
   const complexityScore=complexity(task);
-  const candidates=[...config.workers].filter(w=>riskAllowed(w,task,role)&&!isCoolingDown(health[w.id]));
+  const candidates=[...config.workers].filter(w=>riskAllowed(w,task,role)&&!isCoolingDown(health[w.id])&&accountAvailable(w,config));
   const decisions=candidates.map(w=>{
    const wr=rows.filter(r=>r.worker_id===w.id);
    const exact=wr.filter(r=>r.role===role&&r.task_type===task.type&&(r.domain||'')===(task.domain||'')&&(r.risk||'')===(task.risk||''));
@@ -57,6 +72,9 @@ export async function routeDetailed(root:string,task:Task,config:Config,role:Age
    if(preferred.includes(w.id)){score+=18;reasons.push('preferred for role');}
    const capabilityHits=w.capabilities.filter(c=>[role,task.type,task.domain].filter(Boolean).includes(c));
    if(capabilityHits.length){score+=35+Math.min(15,capabilityHits.length*5);reasons.push(`capability match: ${capabilityHits.join(', ')}`)}
+   const poolAcc=w.accountId?config.provider_pool?.providers?.[w.provider]?.accounts?.find(a=>a.id===w.accountId):undefined;
+   if(poolAcc?.envVar && !w.credentialEnvVar) w.credentialEnvVar=poolAcc.envVar;
+   if(poolAcc?.priority){score+=poolAcc.priority*2;reasons.push(`credential account priority: ${poolAcc.id}`);}
    const reliability=w.reliability||.5, quality=w.quality||.5;
    score+=reliability*16+quality*20;
    score+=exactPost*30+broadPost*10+modelPost*8+workerPost*4;

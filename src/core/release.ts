@@ -44,7 +44,7 @@ export async function productionReadiness(root:string){
   add('secret-boundary-doc',envExample,'An environment-variable example documents external secret injection.','advisory');
   add('runtime-isolation',false,'OS/container/VM isolation must be provided by the deployment environment; Aegis cannot prove it from the project alone.','advisory');
   const required=checks.filter(c=>c.severity==='required');
-  return {version:'7.0.0',ready:required.every(c=>c.ok),checkedAt:new Date().toISOString(),checks,summary:{total:checks.length,passed:checks.filter(c=>c.ok).length,failed:checks.filter(c=>!c.ok).length,requiredFailed:required.filter(c=>!c.ok).length}};
+  return {version:'7.0.1',ready:required.every(c=>c.ok),checkedAt:new Date().toISOString(),checks,summary:{total:checks.length,passed:checks.filter(c=>c.ok).length,failed:checks.filter(c=>!c.ok).length,requiredFailed:required.filter(c=>!c.ok).length}};
 }
 
 export async function databaseBackup(root:string,destination:string){

@@ -22,7 +22,7 @@ export async function learningReport(root:string):Promise<LearningInsight[]> {
   const groups=new Map<string,{success:number;total:number;durations:Array<number>;role?:string;model?:string;worker?:string}>();
   for(const r of rows){
    const key=`${r.worker_id||'unknown'}|${r.model||'unknown'}|${r.role||'unknown'}|${r.task_type||'unknown'}|${r.domain||'unknown'}|${r.risk||'unknown'}`;
-   const g=groups.get(key)||{success:0,total:0,durations:[],role:r.role,model:r.model,worker:r.worker_id};
+   const g=groups.get(key)||{success:0,total:0,durations:[] as number[],role:r.role,model:r.model,worker:r.worker_id};
    g.total++; if(['done','success','passed'].includes(String(r.status)))g.success++; if(r.duration_ms)g.durations.push(Number(r.duration_ms)); groups.set(key,g);
   }
   const now=new Date().toISOString();

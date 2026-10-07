@@ -69,6 +69,18 @@ export async function buildContext(root, task, maxChars = 50000) {
         }
         catch { }
     }
+    try {
+        const hRaw = await readText(path.join(root, '.ai', 'CURRENT_HANDOFF.json'));
+        const hp = JSON.parse(hRaw);
+        if (hp.taskId === task.id) {
+            const hc = `\n===== .ai/CURRENT_HANDOFF.json (PRIOR WORKER HANDOFF) =====\n${hRaw}`;
+            if (total + hc.length <= maxChars) {
+                chunks.push(hc);
+                total += hc.length;
+            }
+        }
+    }
+    catch { }
     const taskText = `${task.title} ${task.objective} ${task.acceptance_criteria.join(' ')}`;
     try {
         const memories = await taskMemory(root, task.id, 8);

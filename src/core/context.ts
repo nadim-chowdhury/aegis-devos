@@ -41,6 +41,7 @@ async function sourceContext(root:string,task:Task,budget:number){
 export async function buildContext(root:string,task:Task,maxChars=50000){
   const chunks:string[]=[]; let total=0;
   for(const name of files){try{const text=await readText(path.join(root,'.ai',name)); const chunk=`\n===== .ai/${name} =====\n${text}`; if(total+chunk.length<=maxChars){chunks.push(chunk);total+=chunk.length}}catch{}}
+  try{const hRaw=await readText(path.join(root,'.ai','CURRENT_HANDOFF.json'));const hp=JSON.parse(hRaw);if(hp.taskId===task.id){const hc=`\n===== .ai/CURRENT_HANDOFF.json (PRIOR WORKER HANDOFF) =====\n${hRaw}`;if(total+hc.length<=maxChars){chunks.push(hc);total+=hc.length;}}}catch{}
   const taskText=`${task.title} ${task.objective} ${task.acceptance_criteria.join(' ')}`;
   try{
     const memories=await taskMemory(root,task.id,8);

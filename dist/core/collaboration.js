@@ -68,7 +68,7 @@ export async function collaborateProject(root, taskId, options = {}) {
                 const d = await openDb(root);
                 addCollaborationMessage(d, msg);
                 addEvidence(d, { id: `COLLAB-EVIDENCE-${msg.id}`, taskId, kind: 'collaboration_message', status: 'info', payload: msg });
-                recordEvent(d, 'collaboration.message', { sessionId, ...msg }, taskId);
+                recordEvent(d, 'collaboration.message', msg, taskId);
                 d.close();
                 transcript.push(`${role} ${kind}: ${content}`);
                 sent++;
@@ -78,7 +78,8 @@ export async function collaborateProject(root, taskId, options = {}) {
             // One bounded lead synthesis per round; the final decision is synthesized after the message budget or final round.
         }
         const d = await openDb(root);
-        const messages = collaborationStatus(d, sessionId)?.messages || [];
+        const cstat = collaborationStatus(d, sessionId);
+        const messages = cstat?.messages || [];
         d.close();
         const leadWorkers = await route(root, { ...task, assigned_role: leadRole }, config, leadRole);
         if (!leadWorkers.length)

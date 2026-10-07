@@ -1,8 +1,11 @@
 ## 7.0.1 — Production Validation Stabilization
 
-- Corrected V7 acceptance self-scan false positive.
-- Added explicit production-validation release metadata.
-- Preserved V7.0 core scope; no new intelligence subsystem.
+- Fixed 11 TypeScript compiler errors across 6 files (including factory resume ID scope and reliability history await bugs).
+- Added executable permissions for tsc and tsx binaries.
+- Introduced ProviderPool and CredentialAccount domain abstractions with exponential 429 quota backoff.
+- Added Section 14 Context Manifest generation and Section 15 persistent AI Handoff state tracking.
+- Scaffolds complete 12-document canonical specification suite on aegis init.
+- Verified 6/6 chaos/reliability tests and sandbox production readiness with 29/29 acceptance checks passing.
 
 # Changelog
 

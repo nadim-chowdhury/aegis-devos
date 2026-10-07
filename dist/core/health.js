@@ -23,6 +23,10 @@ export async function recordHealth(root, workerId, result) {
         old.failures++;
         old.consecutiveFailures++;
         old.lastFailure = new Date().toISOString();
+        if (result.errorType === 'quota') {
+            const backoffSec = Math.min(3600, 60 * Math.pow(2, Math.min(old.consecutiveFailures - 1, 5)));
+            old.cooldownUntil = new Date(Date.now() + backoffSec * 1000).toISOString();
+        }
     }
     all[workerId] = old;
     await ensureDir(path.dirname(file(root)));
